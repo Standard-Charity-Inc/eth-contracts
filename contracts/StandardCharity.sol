@@ -5,23 +5,48 @@ pragma solidity >= 0.6.0 < 0.7.0;
 import "../node_modules/@openzeppelin/contracts/access/Ownable.sol";
 import "../node_modules/@openzeppelin/contracts/utils/Pausable.sol";
 import "../node_modules/@openzeppelin/contracts/utils/Counters.sol";
+import "../node_modules/@openzeppelin/contracts/utils/Strings.sol";
 
 contract StandardCharity is Ownable, Pausable {
   using Counters for Counters.Counter;
+  using Strings for *;
 
-  mapping (address => mapping (uint256 => UnexpendedDonation)) public unexpendedDonations;
-  mapping (address => Counters.Counter) public numUnexpendedDonations;
+  mapping (address => mapping (uint256 => Donation)) public donations;
+  mapping (address => Counters.Counter) public numDonationsByUser;
+  /**
+   * @notice The donationTracker mapping format is as follows:
+   * {total donation number}-{donator address without leading 0x}
+   *
+   * So, for example, if the first donation that this contract receives
+   * is from address 0xA7a5F8EA98C9b345075dDa7442A833189Ce3717e, the 
+   * donationTracker mapping entry will look like this:
+   * 1 => 1-a7a5f8ea98c9b345075dda7442a833189ce3717e
+   */
+  mapping (uint256 => string) public donationTracker;
+
+  Counters.Counter public totalNumDonations;
+  Counters.Counter public lastExpendedDonation;
 
   MaxDonation public maxDonation;
+  LatestDonation public latestDonation;
 
-  struct UnexpendedDonation {
+  string someString;
+
+  struct Donation {
     address donator;
     uint value;
     uint256 timestamp;
     uint valueExpendedETH;
+    uint256 donationNumber;
   }
 
   struct MaxDonation {
+    address donator;
+    uint value;
+    uint256 timestamp;
+  }
+
+  struct LatestDonation {
     address donator;
     uint value;
     uint256 timestamp;
@@ -36,23 +61,81 @@ contract StandardCharity is Ownable, Pausable {
   function donate() public payable {
     require(msg.value > 0, 'Donation amount must be greater than 0');
 
-    numUnexpendedDonations[msg.sender].increment();
+    numDonationsByUser[msg.sender].increment();
 
-    UnexpendedDonation memory _donation = UnexpendedDonation({
+    uint256 donationNumber = numDonationsByUser[msg.sender].current();
+
+    Donation memory _donation = Donation({
       donator: msg.sender,
       value: msg.value,
       timestamp: now,
-      valueExpendedETH: 0
+      valueExpendedETH: 0,
+      donationNumber: donationNumber
     });
 
-    unexpendedDonations[msg.sender][numUnexpendedDonations[msg.sender].current()] = _donation;
+    donations[msg.sender][donationNumber] = _donation;
 
     emit LogNewDonation(msg.sender, msg.value);
 
-    checkMaxDonation(_donation);
+    updateStoredDonations(_donation);
+
+    totalNumDonations.increment();
+
+    string memory donationNumWithDash = concat(donationNumber.toString(), '-');
+
+    donationTracker[totalNumDonations.current()] = concat(donationNumWithDash, toAsciiString(msg.sender));
   }
 
-  function checkMaxDonation(UnexpendedDonation memory _donation) private {
+  function addressToString(address x) private pure returns (string memory) {
+    bytes memory b = new bytes(20);
+
+    for (uint i = 0; i < 20; i++)
+        b[i] = byte(uint8(uint(x) / (2**(8*(19 - i)))));
+
+    return string(b);
+  }
+
+  function toAsciiString(address x) internal pure returns (string memory) {
+    bytes memory s = new bytes(40);
+
+    for (uint i = 0; i < 20; i++) {
+        byte b = byte(uint8(uint(x) / (2**(8*(19 - i)))));
+        byte hi = byte(uint8(b) / 16);
+        byte lo = byte(uint8(b) - 16 * uint8(hi));
+        s[2*i] = char(hi);
+        s[2*i+1] = char(lo);            
+    }
+
+    return string(s);
+  }
+
+  function char(byte b) internal pure returns (byte c) {
+      if (uint8(b) < 10) return byte(uint8(b) + 0x30);
+      else return byte(uint8(b) + 0x57);
+  }
+
+  function concat(string memory _base, string memory _value) internal pure returns (string memory) {
+    bytes memory _baseBytes = bytes(_base);
+    bytes memory _valueBytes = bytes(_value);
+
+    string memory _tmpValue = new string(_baseBytes.length + _valueBytes.length);
+    bytes memory _newValue = bytes(_tmpValue);
+
+    uint i;
+    uint j;
+
+    for(i = 0; i < _baseBytes.length; i++) {
+      _newValue[j++] = _baseBytes[i];
+    }
+
+    for(i = 0; i < _valueBytes.length; i++) {
+      _newValue[j++] = _valueBytes[i];
+    }
+
+    return string(_newValue);
+  }
+
+  function updateStoredDonations(Donation memory _donation) internal {
     if (_donation.value > maxDonation.value) {
       maxDonation = MaxDonation({
         donator: _donation.donator,
@@ -60,5 +143,11 @@ contract StandardCharity is Ownable, Pausable {
         timestamp: _donation.timestamp
       });
     }
+
+    latestDonation = LatestDonation({
+      donator: _donation.donator,
+      value: _donation.value,
+      timestamp: _donation.timestamp
+    });
   }
 }

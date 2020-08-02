@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.3] - 2020-08-02
+
+### Added
+
+- Total donations counter
+- Mechanism to track expended donations
+- String converters
+
 ## [0.0.2] - 2020-08-01
 
 ### Added
