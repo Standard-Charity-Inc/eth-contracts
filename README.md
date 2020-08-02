@@ -2,6 +2,8 @@
 
 > Ethereum smart contracts for Standard Charity written in Solidity
 
+**⚠️ This contract is under development. It is not ready for production deployment.**
+
 ## Development
 
 This project utilizes contracts developed by [Open Zeppelin](https://docs.openzeppelin.com/openzeppelin/). To import the required npm modules, run the following from the root of the project:
