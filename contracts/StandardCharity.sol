@@ -6,10 +6,12 @@ import "../node_modules/@openzeppelin/contracts/access/Ownable.sol";
 import "../node_modules/@openzeppelin/contracts/utils/Pausable.sol";
 import "../node_modules/@openzeppelin/contracts/utils/Counters.sol";
 import "../node_modules/@openzeppelin/contracts/utils/Strings.sol";
+import "../node_modules/@openzeppelin/contracts/math/SafeMath.sol";
 
 contract StandardCharity is Ownable, Pausable {
   using Counters for Counters.Counter;
   using Strings for *;
+  using SafeMath for uint256;
 
   mapping (address => mapping (uint256 => Donation)) public donations;
   mapping (address => Counters.Counter) public numDonationsByUser;
@@ -23,40 +25,67 @@ contract StandardCharity is Ownable, Pausable {
    * 1 => 1-a7a5f8ea98c9b345075dda7442a833189ce3717e
    */
   mapping (uint256 => string) public donationTracker;
+  
+  mapping (uint256 => Expenditure) public expenditures;
+  mapping (address => ExpendedDonation) public expendedDonations;
 
   Counters.Counter public totalNumDonations;
-  Counters.Counter public lastExpendedDonation;
+  Counters.Counter public nextDonationToExpend;
+  Counters.Counter public totalNumExpenditures;
+
+  uint256 public totalDonationsETH;
+  uint256 public totalExpendedETH;
+  uint256 public totalExpendedUSD;
 
   MaxDonation public maxDonation;
   LatestDonation public latestDonation;
 
-  string someString;
-
+  /// @param donationNumber The donation number for this particular address
   struct Donation {
     address donator;
-    uint value;
+    uint256 value;
     uint256 timestamp;
-    uint valueExpendedETH;
+    uint256 valueExpendedETH;
     uint256 donationNumber;
   }
 
   struct MaxDonation {
     address donator;
-    uint value;
+    uint256 value;
     uint256 timestamp;
   }
 
   struct LatestDonation {
     address donator;
-    uint value;
+    uint256 value;
     uint256 timestamp;
   }
 
-  event LogNewDonation(address donator, uint value);
+  /// @param donationNumber The donation number for this particular address
+  struct ExpendedDonation {
+    address donator;
+    uint256 valueExpendedETH;
+    uint256 valueExpendedUSD;
+    uint256 timestamp;
+    uint256 donationNumber;
+    // mapping (uint => Expenditure) expenditures;
+  }
 
-  // constructor() public {
-    
-  // }
+  /// @param videoHash The hash of the video file associated with this donation. The
+  /// XXHash algorithm is used to produce a 32 bit hash with a seed of 0xCAFEBABE
+  /// @param valueExpendedUSD Value in cents
+  struct Expenditure {
+    uint256 valueExpendedETH;
+    uint256 valueExpendedUSD;
+    string videoHash;
+    uint256 timestamp;
+  }
+
+  event LogNewDonation(address donator, uint256 value);
+
+  constructor() public {
+    nextDonationToExpend.increment();
+  }
 
   function donate() public payable {
     require(msg.value > 0, 'Donation amount must be greater than 0');
@@ -81,10 +110,47 @@ contract StandardCharity is Ownable, Pausable {
 
     totalNumDonations.increment();
 
-    string memory donationNumWithDash = concat(donationNumber.toString(), '-');
+    string memory donationNumWithDash = concat(
+      donationNumber.toString(),
+      '-'
+    );
 
-    donationTracker[totalNumDonations.current()] = concat(donationNumWithDash, toAsciiString(msg.sender));
+    donationTracker[totalNumDonations.current()] = concat(
+      donationNumWithDash,
+      toAsciiString(msg.sender)
+    );
+
+    totalDonationsETH = totalDonationsETH.add(msg.value);
   }
+
+  function createExpenditure(
+    string memory _videoHash,
+    uint256 _valueUSD,
+    uint256 _valueETH
+  ) public onlyOwner() {
+    require(
+      address(this).balance >= _valueETH,
+      'The expenditure must be less than or equal to the balance of the contract.'
+    );
+
+    totalNumExpenditures.increment();
+
+    expenditures[totalNumExpenditures.current()] = Expenditure({
+      valueExpendedETH: _valueETH,
+      valueExpendedUSD: _valueUSD,
+      videoHash: _videoHash,
+      timestamp: now
+    });
+
+    totalExpendedETH = totalExpendedETH.add(_valueETH);
+
+    totalExpendedUSD = totalExpendedUSD.add(_valueUSD);
+
+    payable(owner()).transfer(_valueETH);
+  }
+
+  // TO DO: Create function to create expended donation. Link expended
+  // donation to original donation.
 
   function addressToString(address x) private pure returns (string memory) {
     bytes memory b = new bytes(20);
@@ -149,5 +215,15 @@ contract StandardCharity is Ownable, Pausable {
       value: _donation.value,
       timestamp: _donation.timestamp
     });
+  }
+
+  receive() external payable {
+    if (msg.value > 0) {
+      payable(owner()).transfer(msg.value);
+    }
+  }
+
+  function getContractBalance() public view returns (uint256) {
+    return address(this).balance;
   }
 }

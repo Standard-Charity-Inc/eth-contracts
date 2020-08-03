@@ -1,6 +1,6 @@
 {
   "name": "eth-contracts",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "ETH smart contracts written in Solidity for Standard Charity",
   "main": "truffle-config.js",
   "directories": {
