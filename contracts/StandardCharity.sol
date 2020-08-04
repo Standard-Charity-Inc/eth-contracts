@@ -15,6 +15,7 @@ contract StandardCharity is Ownable, Pausable {
 
   mapping (address => mapping (uint256 => Donation)) public donations;
   mapping (address => Counters.Counter) public numDonationsByUser;
+  Counters.Counter public totalNumDonations;
   /**
    * @notice The donationTracker mapping format is as follows:
    * {total donation number}-{donator address without leading 0x}
@@ -27,11 +28,12 @@ contract StandardCharity is Ownable, Pausable {
   mapping (uint256 => string) public donationTracker;
   
   mapping (uint256 => Expenditure) public expenditures;
-  mapping (address => ExpendedDonation) public expendedDonations;
-
-  Counters.Counter public totalNumDonations;
-  Counters.Counter public nextDonationToExpend;
   Counters.Counter public totalNumExpenditures;
+
+  mapping (uint256 => ExpendedDonation) public expendedDonations;
+  Counters.Counter totalNumExpendedDonations;
+
+  uint256 public nextDonationToExpend;
 
   uint256 public totalDonationsETH;
   uint256 public totalExpendedETH;
@@ -46,7 +48,10 @@ contract StandardCharity is Ownable, Pausable {
     uint256 value;
     uint256 timestamp;
     uint256 valueExpendedETH;
+    uint256 valueExpendedUSD;
     uint256 donationNumber;
+    mapping (uint256 => uint256) expendedDonationIDs;
+    uint256 numExpenditures;
   }
 
   struct MaxDonation {
@@ -67,8 +72,8 @@ contract StandardCharity is Ownable, Pausable {
     uint256 valueExpendedETH;
     uint256 valueExpendedUSD;
     uint256 timestamp;
+    uint256 expenditureNumber;
     uint256 donationNumber;
-    // mapping (uint => Expenditure) expenditures;
   }
 
   /// @param videoHash The hash of the video file associated with this donation. The
@@ -79,12 +84,15 @@ contract StandardCharity is Ownable, Pausable {
     uint256 valueExpendedUSD;
     string videoHash;
     uint256 timestamp;
+    mapping (uint256 => uint256) expendedDonationIDs;
+    uint256 numExpendedDonations;
+    uint256 valueExpendedByDonations;
   }
 
   event LogNewDonation(address donator, uint256 value);
 
   constructor() public {
-    nextDonationToExpend.increment();
+    nextDonationToExpend = 1;
   }
 
   function donate() public payable {
@@ -99,7 +107,9 @@ contract StandardCharity is Ownable, Pausable {
       value: msg.value,
       timestamp: now,
       valueExpendedETH: 0,
-      donationNumber: donationNumber
+      valueExpendedUSD: 0,
+      donationNumber: donationNumber,
+      numExpenditures: 0
     });
 
     donations[msg.sender][donationNumber] = _donation;
@@ -139,7 +149,9 @@ contract StandardCharity is Ownable, Pausable {
       valueExpendedETH: _valueETH,
       valueExpendedUSD: _valueUSD,
       videoHash: _videoHash,
-      timestamp: now
+      timestamp: now,
+      numExpendedDonations: 0,
+      valueExpendedByDonations: 0
     });
 
     totalExpendedETH = totalExpendedETH.add(_valueETH);
@@ -149,8 +161,121 @@ contract StandardCharity is Ownable, Pausable {
     payable(owner()).transfer(_valueETH);
   }
 
-  // TO DO: Create function to create expended donation. Link expended
-  // donation to original donation.
+  function setNextDonationToExpend(uint256 _nextDonationToExpend) public onlyOwner() {
+    require(
+      _nextDonationToExpend > nextDonationToExpend,
+      'You must provide a value greater than the current next donation to expend'
+    );
+    
+    string memory lastDonation = donationTracker[_nextDonationToExpend.sub(1)];
+
+    string memory thisDonation = donationTracker[_nextDonationToExpend];
+
+    if (textIsEmpty(lastDonation) == true && textIsEmpty(thisDonation) == true) {
+      revert('The ID of the next donation to expend is invalid');
+    }
+
+    nextDonationToExpend = _nextDonationToExpend;
+  }
+
+  function createExpendedDonation(
+    address _donator,
+    uint256 _valueExpendedETH,
+    uint256 _valueExpendedUSD,
+    uint256 _donationNumber,
+    uint256 _expeditureNumber
+  ) public onlyOwner() {
+    Donation memory donation = donations[_donator][_donationNumber];
+
+    Expenditure memory expenditure = expenditures[_expeditureNumber];
+
+    require(
+      donation.value > 0,
+      'A donation with the provided address and/or donation number could not be found'
+    );
+
+    require(
+      expenditure.valueExpendedETH > 0,
+      'An expenditure with the provided expenditure number could not be found'
+    );
+
+    require(
+      _valueExpendedETH > 0,
+      'The ETH value expended must be greater than 0'
+    );
+
+    require(
+      _valueExpendedUSD > 0,
+      'The USD value expended must be greater than 0'
+    );
+
+    require(
+      _valueExpendedETH <= donation.value.sub(donation.valueExpendedETH),
+      'You may not expend more of a donation than it has remaining to expend'
+    );
+
+    require(
+      _valueExpendedETH <= expenditure.valueExpendedETH.sub(expenditure.valueExpendedByDonations),
+      'You may not expend more than the value of the associated expenditure.'
+    );
+
+    totalNumExpendedDonations.increment();
+
+    ExpendedDonation memory expendedDonation = ExpendedDonation({
+      donator: _donator,
+      timestamp: now,
+      donationNumber: _donationNumber,
+      valueExpendedETH: _valueExpendedETH,
+      valueExpendedUSD: _valueExpendedUSD,
+      expenditureNumber: _expeditureNumber
+    });
+
+    uint256 currentExpendedDonation = totalNumExpendedDonations.current();
+
+    expendedDonations[currentExpendedDonation] = expendedDonation;
+
+    // Add the donation expenditure to the donation
+
+    uint256 numDonationExpenditures = donation.numExpenditures.add(1);
+
+    donations[_donator][_donationNumber].valueExpendedETH =
+      donations[_donator][_donationNumber].valueExpendedETH.add(_valueExpendedETH);
+
+    donations[_donator][_donationNumber].valueExpendedUSD =
+      donations[_donator][_donationNumber].valueExpendedUSD.add(_valueExpendedUSD);
+
+    donations[_donator][_donationNumber].numExpenditures = numDonationExpenditures;
+
+    donations[_donator][_donationNumber].expendedDonationIDs[numDonationExpenditures] = currentExpendedDonation;
+
+    // Add the donation expenditure to the expenditure
+
+    uint256 numExpendedDonations = expenditure.numExpendedDonations.add(1);
+
+    expenditures[_expeditureNumber].numExpendedDonations = numExpendedDonations;
+
+    expenditures[_expeditureNumber].valueExpendedByDonations =
+      expenditures[_expeditureNumber].valueExpendedByDonations.add(_valueExpendedETH);
+
+    expenditures[_expeditureNumber].expendedDonationIDs[numExpendedDonations] = currentExpendedDonation;
+  }
+
+  /// @dev Returns an ID (uint256) to be used to get a value from the expendedDonations mapping
+  function getExpendedDonationIDForDonation(
+    address _address,
+    uint256 _donationNumber,
+    uint256 _expenditureNumber
+  ) public view returns (uint256) {
+    return donations[_address][_donationNumber].expendedDonationIDs[_expenditureNumber];
+  }
+
+  /// @dev Returns an ID (uint256) to be used to get a value from the expendedDonations mapping
+  function getExpendedDonationIDForExpenditure(
+    uint256 _expenditureNumber,
+    uint256 _expendedDonationNumber
+  ) public view returns (uint256) {
+    return expenditures[_expenditureNumber].expendedDonationIDs[_expendedDonationNumber];
+  }
 
   function addressToString(address x) private pure returns (string memory) {
     bytes memory b = new bytes(20);
@@ -180,11 +305,18 @@ contract StandardCharity is Ownable, Pausable {
       else return byte(uint8(b) + 0x57);
   }
 
-  function concat(string memory _base, string memory _value) internal pure returns (string memory) {
+  function concat(
+    string memory _base,
+    string memory _value
+  ) internal pure returns (string memory) {
     bytes memory _baseBytes = bytes(_base);
     bytes memory _valueBytes = bytes(_value);
 
-    string memory _tmpValue = new string(_baseBytes.length + _valueBytes.length);
+    string memory _tmpValue = new string(
+      _baseBytes.length +
+      _valueBytes.length
+    );
+    
     bytes memory _newValue = bytes(_tmpValue);
 
     uint i;
@@ -225,5 +357,12 @@ contract StandardCharity is Ownable, Pausable {
 
   function getContractBalance() public view returns (uint256) {
     return address(this).balance;
+  }
+
+  /// @notice Check to see if a string is empty
+  /// @param _string A string for which to check whether it is empty
+  /// @return a boolean value that expresses whether the string is empty
+  function textIsEmpty(string memory _string) internal pure returns(bool) {
+    return bytes(_string).length == 0;
   }
 }

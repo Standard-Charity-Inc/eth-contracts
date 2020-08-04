@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.4] - 2020-08-03
+
+### Added
+
+- Ability to match expended donation to donation and expenditure
+- Epxenditure of individual donations
+
 ## [0.0.4] - 2020-08-02
 
 ### Added
