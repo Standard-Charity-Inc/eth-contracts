@@ -39,8 +39,8 @@ contract StandardCharity is Ownable, Pausable {
   uint256 public totalExpendedETH;
   uint256 public totalExpendedUSD;
 
-  MaxDonation public maxDonation;
-  LatestDonation public latestDonation;
+  SpotlightDonation public maxDonation;
+  SpotlightDonation public latestDonation;
 
   /// @param donationNumber The donation number for this particular address
   struct Donation {
@@ -49,18 +49,13 @@ contract StandardCharity is Ownable, Pausable {
     uint256 timestamp;
     uint256 valueExpendedETH;
     uint256 valueExpendedUSD;
+    uint256 valueRefundedETH;
     uint256 donationNumber;
     mapping (uint256 => uint256) expendedDonationIDs;
     uint256 numExpenditures;
   }
 
-  struct MaxDonation {
-    address donator;
-    uint256 value;
-    uint256 timestamp;
-  }
-
-  struct LatestDonation {
+  struct SpotlightDonation {
     address donator;
     uint256 value;
     uint256 timestamp;
@@ -71,7 +66,6 @@ contract StandardCharity is Ownable, Pausable {
     address donator;
     uint256 valueExpendedETH;
     uint256 valueExpendedUSD;
-    uint256 timestamp;
     uint256 expenditureNumber;
     uint256 donationNumber;
   }
@@ -89,7 +83,7 @@ contract StandardCharity is Ownable, Pausable {
     uint256 valueExpendedByDonations;
   }
 
-  event LogNewDonation(address donator, uint256 value);
+  event LogNewDonation(address donator, uint256 donationNumber, uint256 value);
 
   constructor() public {
     nextDonationToExpend = 1;
@@ -109,12 +103,13 @@ contract StandardCharity is Ownable, Pausable {
       valueExpendedETH: 0,
       valueExpendedUSD: 0,
       donationNumber: donationNumber,
-      numExpenditures: 0
+      numExpenditures: 0,
+      valueRefundedETH: 0
     });
 
     donations[msg.sender][donationNumber] = _donation;
 
-    emit LogNewDonation(msg.sender, msg.value);
+    emit LogNewDonation(msg.sender, donationNumber, msg.value);
 
     updateStoredDonations(_donation);
 
@@ -210,7 +205,7 @@ contract StandardCharity is Ownable, Pausable {
     );
 
     require(
-      _valueExpendedETH <= donation.value.sub(donation.valueExpendedETH),
+      _valueExpendedETH <= donation.value.sub(donation.valueExpendedETH).sub(donation.valueRefundedETH),
       'You may not expend more of a donation than it has remaining to expend'
     );
 
@@ -223,7 +218,6 @@ contract StandardCharity is Ownable, Pausable {
 
     ExpendedDonation memory expendedDonation = ExpendedDonation({
       donator: _donator,
-      timestamp: now,
       donationNumber: _donationNumber,
       valueExpendedETH: _valueExpendedETH,
       valueExpendedUSD: _valueExpendedUSD,
@@ -277,13 +271,35 @@ contract StandardCharity is Ownable, Pausable {
     return expenditures[_expenditureNumber].expendedDonationIDs[_expendedDonationNumber];
   }
 
-  function addressToString(address x) private pure returns (string memory) {
-    bytes memory b = new bytes(20);
+  function refundDonation(
+    address _address,
+    uint256 _donationNumber,
+    uint256 _valueETHToRefund
+  ) public onlyOwner() {
+    Donation memory donation = donations[_address][_donationNumber];
 
-    for (uint i = 0; i < 20; i++)
-        b[i] = byte(uint8(uint(x) / (2**(8*(19 - i)))));
+    require(
+      donation.value > 0,
+      'A donation with the provided address and/or donation number could not be found'
+    );
 
-    return string(b);
+    require(
+      donation.value.sub(donation.valueExpendedETH) >= _valueETHToRefund,
+      'You may not refund more than the value of the donation less any expendeditures'
+    );
+
+    // This should never happen, but it's placed here as a check just in case.
+    require(
+      _valueETHToRefund <= address(this).balance,
+      'The contract does not have enough balance to make a refund of the requested size'
+    );
+
+    payable(donation.donator).transfer(_valueETHToRefund);
+
+    donations[_address][_donationNumber].valueRefundedETH =
+      donations[_address][_donationNumber].valueRefundedETH.add(_valueETHToRefund);
+
+    totalDonationsETH = totalDonationsETH.sub(_valueETHToRefund);
   }
 
   function toAsciiString(address x) internal pure returns (string memory) {
@@ -335,14 +351,14 @@ contract StandardCharity is Ownable, Pausable {
 
   function updateStoredDonations(Donation memory _donation) internal {
     if (_donation.value > maxDonation.value) {
-      maxDonation = MaxDonation({
+      maxDonation = SpotlightDonation({
         donator: _donation.donator,
         value: _donation.value,
         timestamp: _donation.timestamp
       });
     }
 
-    latestDonation = LatestDonation({
+    latestDonation = SpotlightDonation({
       donator: _donation.donator,
       value: _donation.value,
       timestamp: _donation.timestamp

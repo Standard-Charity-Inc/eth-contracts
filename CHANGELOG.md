@@ -1,6 +1,14 @@
 # Changelog
 
-## [0.0.4] - 2020-08-03
+## [0.0.6] - 2020-08-04
+
+### Added
+
+- Initial tests
+- Consolidated spotlight donations
+- Ability to refund donations
+
+## [0.0.5] - 2020-08-03
 
 ### Added
 

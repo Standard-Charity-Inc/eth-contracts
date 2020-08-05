@@ -31,3 +31,9 @@ Then, run the CLI:
 You can now migrate the contracts to the local blockchain:
 
 `truffle migrate`
+
+## Testing
+
+To test the contracts, follow the steps above in **Development** to start a development blockchain with Gananche CLI, then run the following:
+
+`truffle test`
