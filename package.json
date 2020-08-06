@@ -1,13 +1,14 @@
 {
   "name": "eth-contracts",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "ETH smart contracts written in Solidity for Standard Charity",
   "main": "truffle-config.js",
   "directories": {
     "test": "test"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prettier": "pretty-quick --pattern \"**/*.*(js|jsx)\""
   },
   "repository": {
     "type": "git",
@@ -29,5 +30,9 @@
   "homepage": "https://github.com/Standard-Charity-Inc/eth-contracts#readme",
   "dependencies": {
     "@openzeppelin/contracts": "^3.1.0"
+  },
+  "devDependencies": {
+    "prettier": "^2.0.5",
+    "pretty-quick": "^2.0.1"
   }
 }

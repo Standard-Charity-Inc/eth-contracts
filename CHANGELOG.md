@@ -1,12 +1,20 @@
 # Changelog
 
+## [0.0.7] - 2020-08-05
+
+### Added
+
+- More unit tests
+- Changes to StandardCharity.sol based on unit tests
+- Prettify for .js code
+
 ## [0.0.6] - 2020-08-04
 
 ### Added
 
 - Initial tests
 - Consolidated spotlight donations
-- Ability to refund donations
+- Ability to refund
 
 ## [0.0.5] - 2020-08-03
 

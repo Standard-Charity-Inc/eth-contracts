@@ -18,12 +18,14 @@ contract StandardCharity is Ownable, Pausable {
   Counters.Counter public totalNumDonations;
   /**
    * @notice The donationTracker mapping format is as follows:
-   * {total donation number}-{donator address without leading 0x}
+   * {total donation number for the user}-{donator address without leading 0x}
    *
    * So, for example, if the first donation that this contract receives
    * is from address 0xA7a5F8EA98C9b345075dDa7442A833189Ce3717e, the 
    * donationTracker mapping entry will look like this:
    * 1 => 1-a7a5f8ea98c9b345075dda7442a833189ce3717e
+   *
+   * Note how the address is converted to lower case.
    */
   mapping (uint256 => string) public donationTracker;
   
@@ -128,11 +130,27 @@ contract StandardCharity is Ownable, Pausable {
     totalDonationsETH = totalDonationsETH.add(msg.value);
   }
 
+  /// @param _valueUSD Denominated in cents
   function createExpenditure(
     string memory _videoHash,
     uint256 _valueUSD,
     uint256 _valueETH
   ) public onlyOwner() {
+    require(
+      _valueETH > 0,
+      'The expenditure value in ETH must be greater than 0'
+    );
+
+    require(
+      _valueUSD > 0,
+      'The expenditure value in USD must be greater than 0'
+    );
+
+    require(
+      textIsEmpty(_videoHash) == false,
+      'A video hash must be supplied'
+    );
+
     require(
       address(this).balance >= _valueETH,
       'The expenditure must be less than or equal to the balance of the contract.'
