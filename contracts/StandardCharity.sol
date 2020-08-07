@@ -389,6 +389,18 @@ contract StandardCharity is Ownable, Pausable {
     }
   }
 
+  function getTotalNumDonations() public view returns (uint256) {
+    return totalNumDonations.current();
+  }
+
+  function getTotalNumExpenditures() public view returns (uint256) {
+    return totalNumExpenditures.current();
+  }
+
+  function getTotalNumExpendedDonations() public view returns (uint256) {
+    return totalNumExpendedDonations.current();
+  }
+
   function getContractBalance() public view returns (uint256) {
     return address(this).balance;
   }

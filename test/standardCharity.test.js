@@ -425,4 +425,238 @@ contract("StandardCharity", (accounts) => {
       );
     });
   });
+
+  describe("createExpendedDonation()", () => {
+    it("reverts if the caller is not the contract owner", async () => {
+      await instance.donate({
+        from: secondAccount,
+        value: 30000,
+      });
+
+      await instance.createExpenditure("abcd", 10000, 10000, {
+        from: firstAccount,
+        value: 0,
+      });
+
+      await catchRevert(
+        instance.createExpendedDonation(secondAccount, 10000, 10050, 1, 1, {
+          from: secondAccount,
+          value: 0,
+        })
+      );
+    });
+
+    it("successfully creates an expended donation", async () => {
+      await instance.donate({
+        from: secondAccount,
+        value: 30000,
+      });
+
+      await instance.createExpenditure("abcd", 10000, 10000, {
+        from: firstAccount,
+        value: 0,
+      });
+
+      await instance.createExpendedDonation(secondAccount, 10000, 10050, 1, 1, {
+        from: firstAccount,
+        value: 0,
+      });
+    });
+
+    it("reverts if a donation with the provided donator address and donation number does not exist", async () => {
+      await instance.donate({
+        from: secondAccount,
+        value: 30000,
+      });
+
+      await instance.createExpenditure("abcd", 10000, 10000, {
+        from: firstAccount,
+        value: 0,
+      });
+
+      await catchRevert(
+        instance.createExpendedDonation(secondAccount, 10000, 10050, 2, 1, {
+          from: firstAccount,
+          value: 0,
+        })
+      );
+    });
+
+    it("reverts if an expenditure with the provided expenditure number does not exist", async () => {
+      await instance.donate({
+        from: secondAccount,
+        value: 30000,
+      });
+
+      await instance.createExpenditure("abcd", 10000, 10000, {
+        from: firstAccount,
+        value: 0,
+      });
+
+      await catchRevert(
+        instance.createExpendedDonation(secondAccount, 10000, 10050, 1, 2, {
+          from: firstAccount,
+          value: 0,
+        })
+      );
+    });
+
+    it("reverts if the value expended in ETH is not greater than 0", async () => {
+      await instance.donate({
+        from: secondAccount,
+        value: 30000,
+      });
+
+      await instance.createExpenditure("abcd", 10000, 10000, {
+        from: firstAccount,
+        value: 0,
+      });
+
+      await catchRevert(
+        instance.createExpendedDonation(secondAccount, 0, 10050, 1, 1, {
+          from: firstAccount,
+          value: 0,
+        })
+      );
+    });
+
+    it("reverts if the value expended in USD is not greater than 0", async () => {
+      await instance.donate({
+        from: secondAccount,
+        value: 30000,
+      });
+
+      await instance.createExpenditure("abcd", 10000, 10000, {
+        from: firstAccount,
+        value: 0,
+      });
+
+      await catchRevert(
+        instance.createExpendedDonation(secondAccount, 10000, 0, 1, 1, {
+          from: firstAccount,
+          value: 0,
+        })
+      );
+    });
+
+    it("reverts if the value of ETH to expend is greater than the initial donation -- if this is the first expended donation for the donation", async () => {
+      await instance.donate({
+        from: secondAccount,
+        value: 30000,
+      });
+
+      await instance.createExpenditure("abcd", 30000, 10000, {
+        from: firstAccount,
+        value: 0,
+      });
+
+      await catchRevert(
+        instance.createExpendedDonation(secondAccount, 40000, 100, 1, 1, {
+          from: firstAccount,
+          value: 0,
+        })
+      );
+    });
+
+    it("reverts if the value of ETH to expend is greater than the initial expenditure -- if this is the first expended donation for the donation", async () => {
+      await instance.donate({
+        from: secondAccount,
+        value: 30000,
+      });
+
+      await instance.createExpenditure("abcd", 20000, 10000, {
+        from: firstAccount,
+        value: 0,
+      });
+
+      await catchRevert(
+        instance.createExpendedDonation(secondAccount, 30000, 100, 1, 1, {
+          from: firstAccount,
+          value: 0,
+        })
+      );
+    });
+
+    it("reverts if the value of ETH to expend is greater than the initial value of the donation less any previous donation(s)", async () => {
+      await instance.donate({
+        from: secondAccount,
+        value: 30000,
+      });
+
+      await instance.createExpenditure("abcd", 30000, 10000, {
+        from: firstAccount,
+        value: 0,
+      });
+
+      await instance.createExpendedDonation(secondAccount, 10000, 100, 1, 1, {
+        from: firstAccount,
+        value: 0,
+      });
+
+      await catchRevert(
+        instance.createExpendedDonation(secondAccount, 30000, 100, 1, 1, {
+          from: firstAccount,
+          value: 0,
+        })
+      );
+    });
+
+    it("reverts if the donation was fully refunded", async () => {
+      await instance.donate({
+        from: secondAccount,
+        value: 30000,
+      });
+
+      await instance.createExpenditure("abcd", 30000, 10000, {
+        from: firstAccount,
+        value: 0,
+      });
+
+      await instance.donate({
+        from: secondAccount,
+        value: 30000,
+      });
+
+      await instance.refundDonation(secondAccount, 1, 30000, {
+        from: firstAccount,
+        value: 0,
+      });
+
+      await catchRevert(
+        instance.createExpendedDonation(secondAccount, 30000, 100, 1, 1, {
+          from: firstAccount,
+          value: 0,
+        })
+      );
+    });
+
+    it("creates an expended donation that can be related to the donations mapping item", async () => {
+      await instance.donate({
+        from: secondAccount,
+        value: 30000,
+      });
+
+      await instance.createExpenditure("abcd", 30000, 30000, {
+        from: firstAccount,
+        value: 0,
+      });
+
+      await instance.createExpendedDonation(secondAccount, 30000, 100, 1, 1, {
+        from: firstAccount,
+        value: 0,
+      });
+
+      const expdendedDonationIDForDonation = await instance.getExpendedDonationIDForDonation(
+        secondAccount,
+        1,
+        1
+      );
+
+      assert.equal(
+        expdendedDonationIDForDonation,
+        1,
+        "The ID of the expended donation should be added to the related item in the donations mapping when an expended donation is created"
+      );
+    });
+  });
 });

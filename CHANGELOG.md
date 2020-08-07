@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.8] - 2020-08-06
+
+### Added
+
+- More unit tests
+- Helper functions for getting totals counters
+
 ## [0.0.7] - 2020-08-05
 
 ### Added
