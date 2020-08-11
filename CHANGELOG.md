@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.0.9] - 2020-08-10
+
+### Added
+
+- Receipt hash (PDF hash) item in expenditure
+- Unit tests
+- VSCode compiler settings
+
+### Changed
+
+- Make some some helper public for testing purposes
+
 ## [0.0.8] - 2020-08-06
 
 ### Added

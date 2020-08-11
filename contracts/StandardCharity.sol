@@ -79,6 +79,7 @@ contract StandardCharity is Ownable, Pausable {
     uint256 valueExpendedETH;
     uint256 valueExpendedUSD;
     string videoHash;
+    string receiptHash;
     uint256 timestamp;
     mapping (uint256 => uint256) expendedDonationIDs;
     uint256 numExpendedDonations;
@@ -133,6 +134,7 @@ contract StandardCharity is Ownable, Pausable {
   /// @param _valueUSD Denominated in cents
   function createExpenditure(
     string memory _videoHash,
+    string memory _receiptHash,
     uint256 _valueUSD,
     uint256 _valueETH
   ) public onlyOwner() {
@@ -147,8 +149,13 @@ contract StandardCharity is Ownable, Pausable {
     );
 
     require(
-      textIsEmpty(_videoHash) == false,
+      isTextEmpty(_videoHash) == false,
       'A video hash must be supplied'
+    );
+
+    require(
+      isTextEmpty(_receiptHash) == false,
+      'A receipt hash must be supplied'
     );
 
     require(
@@ -162,6 +169,7 @@ contract StandardCharity is Ownable, Pausable {
       valueExpendedETH: _valueETH,
       valueExpendedUSD: _valueUSD,
       videoHash: _videoHash,
+      receiptHash: _receiptHash,
       timestamp: now,
       numExpendedDonations: 0,
       valueExpendedByDonations: 0
@@ -184,7 +192,7 @@ contract StandardCharity is Ownable, Pausable {
 
     string memory thisDonation = donationTracker[_nextDonationToExpend];
 
-    if (textIsEmpty(lastDonation) == true && textIsEmpty(thisDonation) == true) {
+    if (isTextEmpty(lastDonation) == true && isTextEmpty(thisDonation) == true) {
       revert('The ID of the next donation to expend is invalid');
     }
 
@@ -320,7 +328,7 @@ contract StandardCharity is Ownable, Pausable {
     totalDonationsETH = totalDonationsETH.sub(_valueETHToRefund);
   }
 
-  function toAsciiString(address x) internal pure returns (string memory) {
+  function toAsciiString(address x) public pure returns (string memory) {
     bytes memory s = new bytes(40);
 
     for (uint i = 0; i < 20; i++) {
@@ -342,7 +350,7 @@ contract StandardCharity is Ownable, Pausable {
   function concat(
     string memory _base,
     string memory _value
-  ) internal pure returns (string memory) {
+  ) public pure returns (string memory) {
     bytes memory _baseBytes = bytes(_base);
     bytes memory _valueBytes = bytes(_value);
 
@@ -356,11 +364,11 @@ contract StandardCharity is Ownable, Pausable {
     uint i;
     uint j;
 
-    for(i = 0; i < _baseBytes.length; i++) {
+    for (i = 0; i < _baseBytes.length; i++) {
       _newValue[j++] = _baseBytes[i];
     }
 
-    for(i = 0; i < _valueBytes.length; i++) {
+    for (i = 0; i < _valueBytes.length; i++) {
       _newValue[j++] = _valueBytes[i];
     }
 
@@ -408,7 +416,7 @@ contract StandardCharity is Ownable, Pausable {
   /// @notice Check to see if a string is empty
   /// @param _string A string for which to check whether it is empty
   /// @return a boolean value that expresses whether the string is empty
-  function textIsEmpty(string memory _string) internal pure returns(bool) {
+  function isTextEmpty(string memory _string) public pure returns(bool) {
     return bytes(_string).length == 0;
   }
 }
