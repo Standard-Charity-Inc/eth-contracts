@@ -87,6 +87,9 @@ contract StandardCharity is Ownable, Pausable {
   }
 
   event LogNewDonation(address donator, uint256 donationNumber, uint256 value);
+  event LogNewExpenditure(uint256 valueETH);
+  event LogNewExpendedDonation(address donator, uint256 donationNumber, uint256 expeditureNumber);
+  event LogNewRefund(address donator, uint256 donationNumber, uint256 valueETH);
 
   constructor() public {
     nextDonationToExpend = 1;
@@ -180,6 +183,8 @@ contract StandardCharity is Ownable, Pausable {
     totalExpendedUSD = totalExpendedUSD.add(_valueUSD);
 
     payable(owner()).transfer(_valueETH);
+
+    emit LogNewExpenditure(_valueETH);
   }
 
   function setNextDonationToExpend(uint256 _nextDonationToExpend) public onlyOwner() {
@@ -249,6 +254,8 @@ contract StandardCharity is Ownable, Pausable {
       valueExpendedUSD: _valueExpendedUSD,
       expenditureNumber: _expeditureNumber
     });
+
+    emit LogNewExpendedDonation(_donator, _donationNumber, _expeditureNumber);
 
     uint256 currentExpendedDonation = totalNumExpendedDonations.current();
 
@@ -326,6 +333,8 @@ contract StandardCharity is Ownable, Pausable {
       donations[_address][_donationNumber].valueRefundedETH.add(_valueETHToRefund);
 
     totalDonationsETH = totalDonationsETH.sub(_valueETHToRefund);
+
+    emit LogNewRefund(_address, _donationNumber, _valueETHToRefund);
   }
 
   function toAsciiString(address x) public pure returns (string memory) {
