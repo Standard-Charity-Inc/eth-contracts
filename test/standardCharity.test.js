@@ -266,7 +266,7 @@ contract("StandardCharity", (accounts) => {
   describe("createExpenditure()", () => {
     it("reverts if address does not belong to the contract owner", async () => {
       await catchRevert(
-        instance.createExpenditure("abcd", "abcde", 10000, 10050, {
+        instance.createExpenditure("abcd", "abcde", 10000, 10050, 50, {
           from: secondAccount,
           value: 0,
         })
@@ -275,7 +275,7 @@ contract("StandardCharity", (accounts) => {
 
     it("reverts if a video hash is not provided", async () => {
       await catchRevert(
-        instance.createExpenditure("", "abcde", 10000, 10050, {
+        instance.createExpenditure("", "abcde", 10000, 10050, 50, {
           from: firstAccount,
           value: 0,
         })
@@ -284,7 +284,7 @@ contract("StandardCharity", (accounts) => {
 
     it("reverts if the ETH value is 0", async () => {
       await catchRevert(
-        instance.createExpenditure("abcd", "abcde", 0, 10050, {
+        instance.createExpenditure("abcd", "abcde", 0, 10050, 50, {
           from: firstAccount,
           value: 0,
         })
@@ -293,7 +293,7 @@ contract("StandardCharity", (accounts) => {
 
     it("reverts if the USD value is 0", async () => {
       await catchRevert(
-        instance.createExpenditure("abcd", "abcde", 10000, 0, {
+        instance.createExpenditure("abcd", "abcde", 10000, 0, 50, {
           from: firstAccount,
           value: 0,
         })
@@ -302,7 +302,7 @@ contract("StandardCharity", (accounts) => {
 
     it("reverts if the contract balance is less than the ETH to expend", async () => {
       await catchRevert(
-        instance.createExpenditure("abcd", "abcde", 10000, 10050, {
+        instance.createExpenditure("abcd", "abcde", 10000, 10050, 50, {
           from: firstAccount,
           value: 0,
         })
@@ -315,7 +315,7 @@ contract("StandardCharity", (accounts) => {
         value: 10000,
       });
 
-      await instance.createExpenditure("abcd", "abcde", 10050, 10000, {
+      await instance.createExpenditure("abcd", "abcde", 10050, 10000, 50, {
         from: firstAccount,
         value: 0,
       });
@@ -338,7 +338,7 @@ contract("StandardCharity", (accounts) => {
         value: 30000,
       });
 
-      await instance.createExpenditure("abcd", "abcde", 10050, 10000, {
+      await instance.createExpenditure("abcd", "abcde", 10050, 10000, 50, {
         from: firstAccount,
         value: 0,
       });
@@ -347,7 +347,7 @@ contract("StandardCharity", (accounts) => {
 
       assert.equal(totalExpendedETH, 10000, error);
 
-      await instance.createExpenditure("abcd", "abcde", 10050, 20000, {
+      await instance.createExpenditure("abcd", "abcde", 10050, 20000, 50, {
         from: firstAccount,
         value: 0,
       });
@@ -366,7 +366,7 @@ contract("StandardCharity", (accounts) => {
         value: 30000,
       });
 
-      await instance.createExpenditure("abcd", "abcde", 10000, 10000, {
+      await instance.createExpenditure("abcd", "abcde", 10000, 10000, 50, {
         from: firstAccount,
         value: 0,
       });
@@ -375,7 +375,7 @@ contract("StandardCharity", (accounts) => {
 
       assert.equal(totalExpendedUSD, 10000, error);
 
-      await instance.createExpenditure("abcd", "abcde", 20000, 20000, {
+      await instance.createExpenditure("abcd", "abcde", 20000, 20000, 50, {
         from: firstAccount,
         value: 0,
       });
@@ -400,6 +400,7 @@ contract("StandardCharity", (accounts) => {
         "abcde",
         20000,
         expenditureValueETH,
+        50,
         {
           from: firstAccount,
           value: 0,
@@ -434,13 +435,13 @@ contract("StandardCharity", (accounts) => {
         value: 30000,
       });
 
-      await instance.createExpenditure("abcd", "abcde", 10000, 10000, {
+      await instance.createExpenditure("abcd", "abcde", 10000, 10000, 50, {
         from: firstAccount,
         value: 0,
       });
 
       await catchRevert(
-        instance.createExpendedDonation(secondAccount, 10000, 10050, 1, 1, {
+        instance.createExpendedDonation(secondAccount, 10000, 10050, 1, 1, 50, {
           from: secondAccount,
           value: 0,
         })
@@ -453,12 +454,12 @@ contract("StandardCharity", (accounts) => {
         value: 30000,
       });
 
-      await instance.createExpenditure("abcd", "abcde", 10000, 10000, {
+      await instance.createExpenditure("abcd", "abcde", 10000, 10000, 50, {
         from: firstAccount,
         value: 0,
       });
 
-      await instance.createExpendedDonation(secondAccount, 10000, 10050, 1, 1, {
+      await instance.createExpendedDonation(secondAccount, 10000, 10050, 1, 1, 50, {
         from: firstAccount,
         value: 0,
       });
@@ -470,13 +471,13 @@ contract("StandardCharity", (accounts) => {
         value: 30000,
       });
 
-      await instance.createExpenditure("abcd", "abcde", 10000, 10000, {
+      await instance.createExpenditure("abcd", "abcde", 10000, 10000, 50, {
         from: firstAccount,
         value: 0,
       });
 
       await catchRevert(
-        instance.createExpendedDonation(secondAccount, 10000, 10050, 2, 1, {
+        instance.createExpendedDonation(secondAccount, 10000, 10050, 2, 1, 50, {
           from: firstAccount,
           value: 0,
         })
@@ -489,13 +490,13 @@ contract("StandardCharity", (accounts) => {
         value: 30000,
       });
 
-      await instance.createExpenditure("abcd", "abcde", 10000, 10000, {
+      await instance.createExpenditure("abcd", "abcde", 10000, 10000, 50, {
         from: firstAccount,
         value: 0,
       });
 
       await catchRevert(
-        instance.createExpendedDonation(secondAccount, 10000, 10050, 1, 2, {
+        instance.createExpendedDonation(secondAccount, 10000, 10050, 1, 2, 50, {
           from: firstAccount,
           value: 0,
         })
@@ -508,13 +509,13 @@ contract("StandardCharity", (accounts) => {
         value: 30000,
       });
 
-      await instance.createExpenditure("abcd", "abcde", 10000, 10000, {
+      await instance.createExpenditure("abcd", "abcde", 10000, 10000, 50, {
         from: firstAccount,
         value: 0,
       });
 
       await catchRevert(
-        instance.createExpendedDonation(secondAccount, 0, 10050, 1, 1, {
+        instance.createExpendedDonation(secondAccount, 0, 10050, 1, 1, 50, {
           from: firstAccount,
           value: 0,
         })
@@ -527,13 +528,13 @@ contract("StandardCharity", (accounts) => {
         value: 30000,
       });
 
-      await instance.createExpenditure("abcd", "abcde", 10000, 10000, {
+      await instance.createExpenditure("abcd", "abcde", 10000, 10000, 50, {
         from: firstAccount,
         value: 0,
       });
 
       await catchRevert(
-        instance.createExpendedDonation(secondAccount, 10000, 0, 1, 1, {
+        instance.createExpendedDonation(secondAccount, 10000, 0, 1, 1, 50, {
           from: firstAccount,
           value: 0,
         })
@@ -546,13 +547,13 @@ contract("StandardCharity", (accounts) => {
         value: 30000,
       });
 
-      await instance.createExpenditure("abcd", "abcde", 30000, 10000, {
+      await instance.createExpenditure("abcd", "abcde", 30000, 10000, 50, {
         from: firstAccount,
         value: 0,
       });
 
       await catchRevert(
-        instance.createExpendedDonation(secondAccount, 40000, 100, 1, 1, {
+        instance.createExpendedDonation(secondAccount, 40000, 100, 1, 1, 50, {
           from: firstAccount,
           value: 0,
         })
@@ -565,13 +566,13 @@ contract("StandardCharity", (accounts) => {
         value: 30000,
       });
 
-      await instance.createExpenditure("abcd", "abcde", 20000, 10000, {
+      await instance.createExpenditure("abcd", "abcde", 20000, 10000, 50, {
         from: firstAccount,
         value: 0,
       });
 
       await catchRevert(
-        instance.createExpendedDonation(secondAccount, 30000, 100, 1, 1, {
+        instance.createExpendedDonation(secondAccount, 30000, 100, 1, 1, 50, {
           from: firstAccount,
           value: 0,
         })
@@ -584,18 +585,18 @@ contract("StandardCharity", (accounts) => {
         value: 30000,
       });
 
-      await instance.createExpenditure("abcd", "abcde", 30000, 10000, {
+      await instance.createExpenditure("abcd", "abcde", 30000, 10000, 50, {
         from: firstAccount,
         value: 0,
       });
 
-      await instance.createExpendedDonation(secondAccount, 10000, 100, 1, 1, {
+      await instance.createExpendedDonation(secondAccount, 10000, 100, 1, 1, 50, {
         from: firstAccount,
         value: 0,
       });
 
       await catchRevert(
-        instance.createExpendedDonation(secondAccount, 30000, 100, 1, 1, {
+        instance.createExpendedDonation(secondAccount, 30000, 100, 1, 1, 50, {
           from: firstAccount,
           value: 0,
         })
@@ -608,7 +609,7 @@ contract("StandardCharity", (accounts) => {
         value: 30000,
       });
 
-      await instance.createExpenditure("abcd", "abcde", 30000, 10000, {
+      await instance.createExpenditure("abcd", "abcde", 30000, 10000, 50, {
         from: firstAccount,
         value: 0,
       });
@@ -624,7 +625,7 @@ contract("StandardCharity", (accounts) => {
       });
 
       await catchRevert(
-        instance.createExpendedDonation(secondAccount, 30000, 100, 1, 1, {
+        instance.createExpendedDonation(secondAccount, 30000, 100, 1, 1, 50, {
           from: firstAccount,
           value: 0,
         })
@@ -637,12 +638,12 @@ contract("StandardCharity", (accounts) => {
         value: 30000,
       });
 
-      await instance.createExpenditure("abcd", "abcde", 30000, 30000, {
+      await instance.createExpenditure("abcd", "abcde", 30000, 30000, 50, {
         from: firstAccount,
         value: 0,
       });
 
-      await instance.createExpendedDonation(secondAccount, 30000, 100, 1, 1, {
+      await instance.createExpendedDonation(secondAccount, 30000, 100, 1, 1, 50, {
         from: firstAccount,
         value: 0,
       });
@@ -666,12 +667,12 @@ contract("StandardCharity", (accounts) => {
         value: 30000,
       });
 
-      await instance.createExpenditure("abcd", "abcde", 30000, 30000, {
+      await instance.createExpenditure("abcd", "abcde", 30000, 30000, 50, {
         from: firstAccount,
         value: 0,
       });
 
-      await instance.createExpendedDonation(secondAccount, 30000, 100, 1, 1, {
+      await instance.createExpendedDonation(secondAccount, 30000, 100, 1, 1, 50, {
         from: firstAccount,
         value: 0,
       });
@@ -760,7 +761,7 @@ contract("StandardCharity", (accounts) => {
         "The total number of donations should be 0 before any donations are made"
       );
 
-      await instance.createExpenditure("abcd", "abcde", 30000, 30000, {
+      await instance.createExpenditure("abcd", "abcde", 30000, 30000, 50, {
         from: firstAccount,
         value: 0,
       });
@@ -780,7 +781,7 @@ contract("StandardCharity", (accounts) => {
         value: 30000,
       });
 
-      await instance.createExpenditure("abcd", "abcde", 30000, 30000, {
+      await instance.createExpenditure("abcd", "abcde", 30000, 30000, 50, {
         from: firstAccount,
         value: 0,
       });
@@ -793,7 +794,7 @@ contract("StandardCharity", (accounts) => {
         "The total number of expended donations should be 0 before any expended donations are created"
       );
 
-      await instance.createExpendedDonation(secondAccount, 30000, 10050, 1, 1, {
+      await instance.createExpendedDonation(secondAccount, 30000, 10050, 1, 1, 50, {
         from: firstAccount,
         value: 0,
       });

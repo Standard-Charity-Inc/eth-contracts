@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.0.11] - 2020-08-24
+
+### Added
+
+- Plates deployed as total, for expenditure and expended donation
+
+### Changed 
+
+- Update tests
+
 ## [0.0.10] - 2020-08-13
 
 ### Added

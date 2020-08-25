@@ -40,6 +40,8 @@ contract StandardCharity is Ownable, Pausable {
   uint256 public totalDonationsETH;
   uint256 public totalExpendedETH;
   uint256 public totalExpendedUSD;
+  // Denoninated as *10, i.e. 50 = 5.0
+  uint256 public totalPlatesDeployed;
 
   SpotlightDonation public maxDonation;
   SpotlightDonation public latestDonation;
@@ -64,17 +66,20 @@ contract StandardCharity is Ownable, Pausable {
   }
 
   /// @param donationNumber The donation number for this particular address
+  /// @param platedDeployed Denoninated as *10, i.e. 50 = 5.0
   struct ExpendedDonation {
     address donator;
     uint256 valueExpendedETH;
     uint256 valueExpendedUSD;
     uint256 expenditureNumber;
     uint256 donationNumber;
+    uint256 platesDeployed;
   }
 
   /// @param videoHash The hash of the video file associated with this donation. The
   /// XXHash algorithm is used to produce a 32 bit hash with a seed of 0xCAFEBABE
   /// @param valueExpendedUSD Value in cents
+  /// @param platedDeployed Denoninated as *10, i.e. 50 = 5.0
   struct Expenditure {
     uint256 valueExpendedETH;
     uint256 valueExpendedUSD;
@@ -84,6 +89,7 @@ contract StandardCharity is Ownable, Pausable {
     mapping (uint256 => uint256) expendedDonationIDs;
     uint256 numExpendedDonations;
     uint256 valueExpendedByDonations;
+    uint256 platesDeployed;
   }
 
   event LogNewDonation(address donator, uint256 donationNumber, uint256 value);
@@ -135,11 +141,13 @@ contract StandardCharity is Ownable, Pausable {
   }
 
   /// @param _valueUSD Denominated in cents
+  /// @param _platesDeployed Denoninated as *10, i.e. 50 = 5.0
   function createExpenditure(
     string memory _videoHash,
     string memory _receiptHash,
     uint256 _valueUSD,
-    uint256 _valueETH
+    uint256 _valueETH,
+    uint256 _platesDeployed
   ) public onlyOwner() {
     require(
       _valueETH > 0,
@@ -175,7 +183,8 @@ contract StandardCharity is Ownable, Pausable {
       receiptHash: _receiptHash,
       timestamp: now,
       numExpendedDonations: 0,
-      valueExpendedByDonations: 0
+      valueExpendedByDonations: 0,
+      platesDeployed: _platesDeployed
     });
 
     totalExpendedETH = totalExpendedETH.add(_valueETH);
@@ -204,12 +213,14 @@ contract StandardCharity is Ownable, Pausable {
     nextDonationToExpend = _nextDonationToExpend;
   }
 
+  /// @param _platesDeployed Denoninated as *10, i.e. 50 = 5.0
   function createExpendedDonation(
     address _donator,
     uint256 _valueExpendedETH,
     uint256 _valueExpendedUSD,
     uint256 _donationNumber,
-    uint256 _expeditureNumber
+    uint256 _expeditureNumber,
+    uint256 _platesDeployed
   ) public onlyOwner() {
     Donation memory donation = donations[_donator][_donationNumber];
 
@@ -252,7 +263,8 @@ contract StandardCharity is Ownable, Pausable {
       donationNumber: _donationNumber,
       valueExpendedETH: _valueExpendedETH,
       valueExpendedUSD: _valueExpendedUSD,
-      expenditureNumber: _expeditureNumber
+      expenditureNumber: _expeditureNumber,
+      platesDeployed: _platesDeployed
     });
 
     emit LogNewExpendedDonation(_donator, _donationNumber, _expeditureNumber);
