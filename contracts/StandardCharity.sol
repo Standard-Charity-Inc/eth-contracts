@@ -191,6 +191,8 @@ contract StandardCharity is Ownable, Pausable {
 
     totalExpendedUSD = totalExpendedUSD.add(_valueUSD);
 
+    totalPlatesDeployed = totalPlatesDeployed.add(_platesDeployed);
+
     payable(owner()).transfer(_valueETH);
 
     emit LogNewExpenditure(_valueETH);

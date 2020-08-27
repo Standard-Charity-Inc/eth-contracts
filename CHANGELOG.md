@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.12] - 2020-08-26
+
+### Added
+
+- Increment total plates deployed on expenditure creation
+
 ## [0.0.11] - 2020-08-24
 
 ### Added
