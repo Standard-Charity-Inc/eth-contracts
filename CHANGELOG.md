@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.13] - 2020-09-01
+
+### Added
+
+- Remove redundant checks for expended donations
+
 ## [0.0.12] - 2020-08-26
 
 ### Added

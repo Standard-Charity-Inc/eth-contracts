@@ -92,10 +92,11 @@ contract StandardCharity is Ownable, Pausable {
     uint256 platesDeployed;
   }
 
-  event LogNewDonation(address donator, uint256 donationNumber, uint256 value);
-  event LogNewExpenditure(uint256 valueETH);
-  event LogNewExpendedDonation(address donator, uint256 donationNumber, uint256 expeditureNumber);
+  event LogNewDonation(address donator, uint256 donationNumber, uint256 value, uint256 overallDonationNumber);
+  event LogNewExpenditure(uint256 expenditureNumber, uint256 valueETH);
+  event LogNewExpendedDonation(address donator, uint256 donationNumber, uint256 expeditureNumber, uint256 expendedDonationNumber);
   event LogNewRefund(address donator, uint256 donationNumber, uint256 valueETH);
+  event LogNewNextDonationToExpend(uint256 nextDonationToExpend);
 
   constructor() public {
     nextDonationToExpend = 1;
@@ -121,11 +122,11 @@ contract StandardCharity is Ownable, Pausable {
 
     donations[msg.sender][donationNumber] = _donation;
 
-    emit LogNewDonation(msg.sender, donationNumber, msg.value);
+    totalNumDonations.increment();
+
+    emit LogNewDonation(msg.sender, donationNumber, msg.value, totalNumDonations.current());
 
     updateStoredDonations(_donation);
-
-    totalNumDonations.increment();
 
     string memory donationNumWithDash = concat(
       donationNumber.toString(),
@@ -195,7 +196,7 @@ contract StandardCharity is Ownable, Pausable {
 
     payable(owner()).transfer(_valueETH);
 
-    emit LogNewExpenditure(_valueETH);
+    emit LogNewExpenditure(totalNumExpenditures.current(), _valueETH);
   }
 
   function setNextDonationToExpend(uint256 _nextDonationToExpend) public onlyOwner() {
@@ -213,6 +214,8 @@ contract StandardCharity is Ownable, Pausable {
     }
 
     nextDonationToExpend = _nextDonationToExpend;
+
+    emit LogNewNextDonationToExpend(_nextDonationToExpend);
   }
 
   /// @param _platesDeployed Denoninated as *10, i.e. 50 = 5.0
@@ -228,36 +231,6 @@ contract StandardCharity is Ownable, Pausable {
 
     Expenditure memory expenditure = expenditures[_expeditureNumber];
 
-    require(
-      donation.value > 0,
-      'A donation with the provided address and/or donation number could not be found'
-    );
-
-    require(
-      expenditure.valueExpendedETH > 0,
-      'An expenditure with the provided expenditure number could not be found'
-    );
-
-    require(
-      _valueExpendedETH > 0,
-      'The ETH value expended must be greater than 0'
-    );
-
-    require(
-      _valueExpendedUSD > 0,
-      'The USD value expended must be greater than 0'
-    );
-
-    require(
-      _valueExpendedETH <= donation.value.sub(donation.valueExpendedETH).sub(donation.valueRefundedETH),
-      'You may not expend more of a donation than it has remaining to expend'
-    );
-
-    require(
-      _valueExpendedETH <= expenditure.valueExpendedETH.sub(expenditure.valueExpendedByDonations),
-      'You may not expend more than the value of the associated expenditure.'
-    );
-
     totalNumExpendedDonations.increment();
 
     ExpendedDonation memory expendedDonation = ExpendedDonation({
@@ -269,36 +242,40 @@ contract StandardCharity is Ownable, Pausable {
       platesDeployed: _platesDeployed
     });
 
-    emit LogNewExpendedDonation(_donator, _donationNumber, _expeditureNumber);
-
     uint256 currentExpendedDonation = totalNumExpendedDonations.current();
+
+    emit LogNewExpendedDonation(_donator, _donationNumber, _expeditureNumber, currentExpendedDonation);
 
     expendedDonations[currentExpendedDonation] = expendedDonation;
 
-    // Add the donation expenditure to the donation
+    // Add the donation expenditure to the donation if the donation exists
 
-    uint256 numDonationExpenditures = donation.numExpenditures.add(1);
+    if (donation.value > 0) {
+      uint256 numDonationExpenditures = donation.numExpenditures.add(1);
 
-    donations[_donator][_donationNumber].valueExpendedETH =
-      donations[_donator][_donationNumber].valueExpendedETH.add(_valueExpendedETH);
+      donations[_donator][_donationNumber].valueExpendedETH =
+        donations[_donator][_donationNumber].valueExpendedETH.add(_valueExpendedETH);
 
-    donations[_donator][_donationNumber].valueExpendedUSD =
-      donations[_donator][_donationNumber].valueExpendedUSD.add(_valueExpendedUSD);
+      donations[_donator][_donationNumber].valueExpendedUSD =
+        donations[_donator][_donationNumber].valueExpendedUSD.add(_valueExpendedUSD);
 
-    donations[_donator][_donationNumber].numExpenditures = numDonationExpenditures;
+      donations[_donator][_donationNumber].numExpenditures = numDonationExpenditures;
 
-    donations[_donator][_donationNumber].expendedDonationIDs[numDonationExpenditures] = currentExpendedDonation;
+      donations[_donator][_donationNumber].expendedDonationIDs[numDonationExpenditures] = currentExpendedDonation;
+    }
 
-    // Add the donation expenditure to the expenditure
+    // Add the donation expenditure to the expenditure if the expenditure exists
 
-    uint256 numExpendedDonations = expenditure.numExpendedDonations.add(1);
+    if (expenditure.valueExpendedETH > 0) {
+      uint256 numExpendedDonations = expenditure.numExpendedDonations.add(1);
 
-    expenditures[_expeditureNumber].numExpendedDonations = numExpendedDonations;
+      expenditures[_expeditureNumber].numExpendedDonations = numExpendedDonations;
 
-    expenditures[_expeditureNumber].valueExpendedByDonations =
-      expenditures[_expeditureNumber].valueExpendedByDonations.add(_valueExpendedETH);
+      expenditures[_expeditureNumber].valueExpendedByDonations =
+        expenditures[_expeditureNumber].valueExpendedByDonations.add(_valueExpendedETH);
 
-    expenditures[_expeditureNumber].expendedDonationIDs[numExpendedDonations] = currentExpendedDonation;
+      expenditures[_expeditureNumber].expendedDonationIDs[numExpendedDonations] = currentExpendedDonation;
+    }
   }
 
   /// @dev Returns an ID (uint256) to be used to get a value from the expendedDonations mapping
